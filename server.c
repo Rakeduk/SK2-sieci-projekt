@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -14,12 +15,37 @@ int acceptClient(int server_socket);
 void * handleConnection(int client_socket);
 
 int main() {
-  // Server socket
+// Server socket
   int server_fd = createServer(PORT);
+    
+  // Declaring 2 fd_sets
+  fd_set current_sockets, ready_sockets;
+
+  // Starting FD_SET
+  FD_ZERO(&current_sockets);
+  FD_SET(server_fd, &current_sockets);
   
   while (1) {
-    int client_fd = acceptClient(server_fd);
-    handleConnection(client_fd);
+    ready_sockets = current_sockets;
+
+    if(select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL) <0){
+      perror("select error");
+      exit(EXIT_FAILURE);
+    }
+
+    for(int i = 0; i < FD_SETSIZE; i++){
+      if(FD_ISSET(i, &ready_sockets)){
+        if(i == server_fd){
+          //this is a new connection
+          int client_fd = acceptClient(server_fd);
+          FD_SET(client_fd, &current_sockets);
+        } else {
+                handleConnection(i);
+                FD_CLR(i, &current_sockets);
+        }
+      }
+    }
+
   }
 
   close(server_fd);
