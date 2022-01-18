@@ -11,13 +11,14 @@ def main():
     client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     client.connect(ADDR)
 
+    """ Send data """
+    data = "Sending data motherfuckers From CLIENT"
+    client.send(data.encode(FORMAT))
+
     """ Recv data """
     data = client.recv(SIZE).decode(FORMAT)
     print(f"[SERVER] {data}")
 
-    """ Send data """
-    data += " From CLIENT"
-    client.send(data.encode(FORMAT))
 
     """ Close connection """
     client.close()
