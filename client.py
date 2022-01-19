@@ -12,59 +12,56 @@ SIZE = 1024
 FORMAT = "utf-8"
 
 def main():    
-
     #########========GRAPHIC PART=============################
     root = Tk()
 
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(ADDR)  
+    fcntl.fcntl(client, fcntl.F_SETFL, os.O_NONBLOCK)
+
     def connectAndGetFirstCards ():
         """ TCP Socket """
-        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client.connect(ADDR)  
-        fcntl.fcntl(client, fcntl.F_SETFL, os.O_NONBLOCK)
+        
 
         """ Send login """
         login = myEntry.get() 
         client.send(login.encode(FORMAT))
-        # data = client.recv(SIZE).decode(FORMAT)
-
-        # print(f"[SERVER] {data}")
-        # res = data.split()
-        # lab5.config(text=str(res[0]))
-        # lab6.config(text=str(res[1]))
-        # lab7.config(text=str(res[2]))
-        # root.update()
-
 
         # """ Not blocking socket """
         while True:
             try:
-                req = "Ask"
-                client.send(login.encode(FORMAT))
                 data = client.recv(SIZE).decode(FORMAT)
             except socket.error as e:
+                print("Waiting for data")
                 err = e.args[0]
                 if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
-                    sleep(1)
-                    print('No data available')
+                    root.update()
                     continue
                 else:
                     # a "real" error occurred
                     print(e)
                     sys.exit(1)
-            else:
+            else:                
                 print(f"[SERVER] {data}")
                 res = data.split()
-                lab1.config(text=str(res[0]))
-                lab2.config(text=str(res[1]))
-                lab3.config(text=str(res[2]))
-                root.update()
+                if res[0] == '0':
+                    lab5.config(text=str(res[1]))
+                    lab6.config(text=str(res[2]))
+                    lab7.config(text=str(res[3]))
+                    root.update()
+                else:
+                    lab1.config(text=str(res[0]))
+                    lab2.config(text=str(res[1]))
+                    lab3.config(text=str(res[2]))
+                    root.update()
                 
         
         """ Close connection """
         #client.close()
 
     def doNothingYet():
-        print("doNothingYet")
+        myAnswer = myEntry.get() 
+        client.send(myAnswer.encode(FORMAT))
 
     root.geometry("1000x300")
     lab1 = Label(root,text="Position 1", width=30)
@@ -96,7 +93,7 @@ def main():
     myEntry = Entry(root,width = 30)
     myEntry.pack()
 
-    myButton = Button(root, text="Click me!", command=doNothingYet)
+    myButton = Button(root, text="Send answer!", command=doNothingYet)
     myButton.pack()
 
     myConnectButton = Button(root, text="Connect me!", command=connectAndGetFirstCards)
