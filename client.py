@@ -1,6 +1,9 @@
 import socket
 from tkinter import * 
 from time import sleep
+import fcntl, os
+import errno
+
 
 IP = "127.0.0.1"
 PORT = 4456
@@ -17,25 +20,45 @@ def main():
         """ TCP Socket """
         client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         client.connect(ADDR)  
-        data = client.recv(SIZE).decode(FORMAT)
-        print(f"[SERVER] {data}")
-        myCards = data.split()
-        lab5.config(text=str(myCards[0]))
-        lab6.config(text=str(myCards[1]))
-        lab7.config(text=str(myCards[2]))
-
-        login = myEntry.get()   
+        fcntl.fcntl(client, fcntl.F_SETFL, os.O_NONBLOCK)
 
         """ Send login """
+        login = myEntry.get() 
         client.send(login.encode(FORMAT))
-
-        # """ Recv data """
         # data = client.recv(SIZE).decode(FORMAT)
+
         # print(f"[SERVER] {data}")
         # res = data.split()
-        # lab1.config(text=str(res[0]))
-        # lab2.config(text=str(res[1]))
-        # lab3.config(text=str(res[2]))
+        # lab5.config(text=str(res[0]))
+        # lab6.config(text=str(res[1]))
+        # lab7.config(text=str(res[2]))
+        # root.update()
+
+
+        # """ Not blocking socket """
+        while True:
+            try:
+                req = "Ask"
+                client.send(login.encode(FORMAT))
+                data = client.recv(SIZE).decode(FORMAT)
+            except socket.error as e:
+                err = e.args[0]
+                if err == errno.EAGAIN or err == errno.EWOULDBLOCK:
+                    sleep(1)
+                    print('No data available')
+                    continue
+                else:
+                    # a "real" error occurred
+                    print(e)
+                    sys.exit(1)
+            else:
+                print(f"[SERVER] {data}")
+                res = data.split()
+                lab1.config(text=str(res[0]))
+                lab2.config(text=str(res[1]))
+                lab3.config(text=str(res[2]))
+                root.update()
+                
         
         """ Close connection """
         #client.close()
