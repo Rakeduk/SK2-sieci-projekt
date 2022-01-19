@@ -8,16 +8,18 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define PORT 4455
+#define PORT 4456
+#define TRUE   1
 
 int createServer(int port);
 int acceptClient(int server_socket);
 void * handleConnection(int client_socket);
+void * giveCards(int client_socket);
 
 int main() {
-// Server socket
+  // Server socket
   int server_fd = createServer(PORT);
-    
+
   // Declaring 2 fd_sets
   fd_set current_sockets, ready_sockets;
 
@@ -28,7 +30,7 @@ int main() {
   while (1) {
     ready_sockets = current_sockets;
 
-    if(select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL) <0){
+    if((select(FD_SETSIZE, &ready_sockets, NULL, NULL, NULL)) <0 && (errno!=EINTR)){
       perror("select error");
       exit(EXIT_FAILURE);
     }
@@ -39,6 +41,7 @@ int main() {
           //this is a new connection
           int client_fd = acceptClient(server_fd);
           FD_SET(client_fd, &current_sockets);
+          giveCards(client_fd);
         } else {
                 handleConnection(i);
                 FD_CLR(i, &current_sockets);
@@ -54,11 +57,18 @@ int main() {
 }
 
 int createServer(int port){
+  int opt = TRUE;
   struct sockaddr_in server_addr;
 
   //creating socket
   int server_socket = socket(AF_INET, SOCK_STREAM,0);
   
+  if( setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, 
+          sizeof(opt)) < 0 )  
+    {  
+        perror("setsockopt");  
+        exit(EXIT_FAILURE);  
+    }  
 
   //complete structure 
   server_addr.sin_family = AF_INET;
@@ -89,8 +99,8 @@ int acceptClient(int server_socket){
 
 void * handleConnection(int client_socket){
   char buffer[1024];
-
-  strcpy(buffer, "Hello, This is a test message");
+  printf("Handling connection");
+  strcpy(buffer, "Kiwi Slon Jelen");
   send(client_socket, buffer, strlen(buffer), 0);
 
   memset(buffer, '\0', sizeof(buffer));
@@ -99,4 +109,19 @@ void * handleConnection(int client_socket){
 
   close(client_socket);
   printf("[DISCONNECTED] Connection closed\n");
+}
+
+
+void * giveCards(int client_socket){
+  char buffer[1024];
+
+  strcpy(buffer, "Slon Krokodyl Borsuk");
+  send(client_socket, buffer, strlen(buffer), 0);
+
+  memset(buffer, '\0', sizeof(buffer));
+  recv(client_socket, buffer, 1024, 0);
+  printf("[CLIENT] %s\n", buffer);
+
+  //close(client_socket);
+  //printf("[DISCONNECTED] Connection closed\n");
 }
