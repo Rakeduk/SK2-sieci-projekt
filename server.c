@@ -104,17 +104,17 @@ void * handleConnection(int client_socket){
   send(client_socket, buffer, strlen(buffer), 0);
 
   memset(buffer, '\0', sizeof(buffer));
-  recv(client_socket, buffer, 1024, 0);
-  printf("[CLIENT] %s\n", buffer);
+  //recv(client_socket, buffer, 1024, 0);
+  //printf("[CLIENT] %s\n", buffer);
 
-  close(client_socket);
-  printf("[DISCONNECTED] Connection closed\n");
+  // close(client_socket);
+  // printf("[DISCONNECTED] Connection closed\n");
 }
 
 
 void * giveCards(int client_socket){
   char buffer[1024];
-
+  printf("Give cards");
   strcpy(buffer, "Slon Krokodyl Borsuk");
   send(client_socket, buffer, strlen(buffer), 0);
 
@@ -122,6 +122,6 @@ void * giveCards(int client_socket){
   recv(client_socket, buffer, 1024, 0);
   printf("[CLIENT] %s\n", buffer);
 
-  //close(client_socket);
-  //printf("[DISCONNECTED] Connection closed\n");
+  // close(client_socket);
+  // printf("[DISCONNECTED] Connection closed\n");
 }
