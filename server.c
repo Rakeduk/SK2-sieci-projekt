@@ -32,8 +32,11 @@ int acceptClient(int server_socket);
 int cardIncrement(int cardNumber);
 bool checkAnswer(int client_socket, const char* cardValue);
 void * handleConnection(int client_socket, const char* cardValue);
-void * giveCards(int client_socket, const char* cardValue);
+char * giveCards(int client_socket, const char* cardValue);
 void * giveAnotherCards(int client_socket, const char* cardValue);
+void * sendRanking(int client_socket, char** username, int score[], int client_counter);
+void * checkScore(int scoreArr[], int client_counter);
+
 
 int main() {
     const char *cards[CARDS_IN_DECK];
@@ -44,6 +47,16 @@ int main() {
     cards[4] = "papuga kangur slon";
     cards[5] = "lew slon sowa";
     cards[6] = "sowa bocian kangur";
+
+
+    //Declaring array for score and name of users 
+    char *clientArr[2000];
+    int scoreArr[2000];
+    int socketArr[2000];
+    
+
+    //Client counter
+    int client_counter = 0;
 
     int givenCardsCounter = 1;
     int currentCard = 0;
@@ -79,27 +92,41 @@ int main() {
                     //this is a new connection
                     int client_fd = acceptClient(server_fd);
                     FD_SET(client_fd, & current_sockets);
-                    giveCards(client_fd, cards[givenCardsCounter]);
+                    clientArr[client_counter] = malloc(sizeof(char)*64);
+                    strcpy(clientArr[client_counter], giveCards(client_fd, cards[givenCardsCounter]));
+                    scoreArr[client_counter] = 0;
+                    socketArr[client_counter] = client_fd;
+                    client_counter = client_counter + 1;
                     givenCardsCounter = cardIncrement(givenCardsCounter);
                     handleConnection(client_fd, cards[currentCard]);
-
+                    for (int j = 0; j < FD_SETSIZE; j++) {
+                            if (FD_ISSET(j, & current_sockets)) {
+                                if (j != server_fd) {
+                                    sendRanking(j, clientArr, scoreArr, client_counter);                                   
+                                }    
+                            }
+                        }
                 } else {
                     decision = checkAnswer(i, cards[currentCard]);
 
                     //Sent message to all 
                     if (decision == true) {
+                        for(int s = 0; s < client_counter; s++){
+                            if(socketArr[s] == i){
+                                printf("Im in");
+                                scoreArr[s] = scoreArr[s] + 1;
+                            }
+                        }
 
-                        //////////testing
-                        // giveAnotherCards(i, cards[givenCardsCounter]);
-                        // givenCardsCounter = cardIncrement(givenCardsCounter);
-                        //////////testing
-
-
+                        giveAnotherCards(i, cards[givenCardsCounter]);
+                        givenCardsCounter = cardIncrement(givenCardsCounter);
                         for (int j = 0; j < FD_SETSIZE; j++) {
                             if (FD_ISSET(j, & current_sockets)) {
                                 if (j != server_fd) {
                                     handleConnection(j, cards[givenCardsCounter]);
-                                    currentCard = givenCardsCounter;                                    
+                                    currentCard = givenCardsCounter;
+                                    sendRanking(j, clientArr, scoreArr, client_counter);    
+                                    checkScore(scoreArr, client_counter);                                                               
                                 }    
                             }
                         }
@@ -111,7 +138,10 @@ int main() {
             }
         }
     }
-
+    for(int i = 0; i < client_counter; i++){
+        free(clientArr[i]);
+    }
+    free(clientArr);
     close(server_fd);
 
     return 0;
@@ -133,7 +163,7 @@ int createServer(int port) {
     //complete structure 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
-    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_addr.s_addr = inet_addr("192.168.1.3");
 
     //binding
     bind(server_socket, (struct sockaddr * ) & server_addr, sizeof(server_addr));
@@ -156,31 +186,63 @@ int acceptClient(int server_socket) {
 }
 
 void * handleConnection(int client_socket, const char* cardValue) {
-    char buffer[1024];
+    char buffer[64];
     strcpy(buffer, cardValue);
+    int number_of_spaces = 64 - strlen(buffer);
+    for (int i = 0 ; i < number_of_spaces ; i++) {
+        strcat(buffer, " ");
+    }
     send(client_socket, buffer, strlen(buffer), 0);
 
     memset(buffer, '\0', sizeof(buffer));
 }
 
-void * giveCards(int client_socket, const char* cardValue) {
-    char buffer[1024];
+char* giveCards(int client_socket, const char* cardValue) {
+    char buffer[64];
     char sign[4];
     strcpy(sign, "0 ");
     strcpy(buffer, cardValue);
     strcat(sign, buffer);
+    int number_of_spaces = 64 - strlen(sign);
+    for (int i = 0 ; i < number_of_spaces ; i++) {
+        strcat(sign, " ");
+    }
 
     send(client_socket, sign, strlen(sign), 0);
-
     memset(buffer, '\0', sizeof(buffer));
-    recv(client_socket, buffer, 1024, 0);
 
+    char * returnedMsg; 
+    returnedMsg = malloc(sizeof(char)*64);
+    recv(client_socket, buffer, 64, 0);
+    strcat(returnedMsg, buffer);
     printf("[CLIENT] %s\n", buffer);
+    return returnedMsg;
+
 
 }
 
+
+void * sendRanking(int client_socket, char** username, int score[], int client_counter) {
+    char number[12];
+    char sign[64];
+    strcpy(sign, "1 ");
+    for(int i = 0; i < client_counter; i++){
+        strcat(sign, " ");
+        strcat(sign, username[i]);
+        sprintf(number, "%d", score[i]);
+        strcat(sign, " ");
+        strcat(sign, number);
+    }
+    int number_of_spaces = 64 - strlen(sign);
+    for (int i = 0 ; i < number_of_spaces ; i++) {
+        strcat(sign, " ");
+    }
+
+    send(client_socket, sign, strlen(sign), 0);
+}
+
 bool checkAnswer(int client_socket, const char* cardValue) {
-    char buffer[1024];
+    char buffer[64];
     char temp[100];
     strcpy(temp, cardValue);
     char * token = strtok(temp, " ");
@@ -213,12 +275,27 @@ int cardIncrement(int cardNumber){
 
 
 void * giveAnotherCards(int client_socket, const char* cardValue) {
-    char buffer[1024];
+    char buffer[64];
     char sign[4];
 
     strcpy(sign, "0 ");
     strcpy(buffer, cardValue);
     strcat(sign, buffer);
+    int number_of_spaces = 64 - strlen(sign);
+    for (int i = 0 ; i < number_of_spaces ; i++) {
+        strcat(sign, " ");
+    }
+
     send(client_socket, sign, strlen(sign), 0);
     memset(buffer, '\0', sizeof(buffer));
+}
+
+void * checkScore(int scoreArr[], int client_counter){
+    for(int i = 0; i < client_counter; i++){
+        if(scoreArr[i] == 10){
+            printf("Ending game");
+            exit(1);
+
+        }
+    }
 }
