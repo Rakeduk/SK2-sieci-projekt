@@ -1,5 +1,5 @@
 # SK2-sieci-projekt
-
+by Radek Dudek i5.1 144653
 
 Kompilowanie serwera: 
 
@@ -21,10 +21,11 @@ python client.py
 ```
 
 
+
+
 Dla testów na tym samym komputerze najlepiej zmienić adress IP na kliencie i serwerze na **127.0.0.1**
 
-
-### TODO
+### TODO Dariusza 
 
 - [ ] Implementacja pokoi
 - [ ] Implementacja ponownego łączenia 
