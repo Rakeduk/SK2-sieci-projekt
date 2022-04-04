@@ -25,7 +25,7 @@ python client.py
 
 Dla testów na tym samym komputerze najlepiej zmienić adress IP na kliencie i serwerze na **127.0.0.1**
 
-### TODO Dariusza 
+### TODO
 
 - [ ] Implementacja pokoi
 - [ ] Implementacja ponownego łączenia 
